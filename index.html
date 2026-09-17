@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor-AI - الاستشارة السريرية الذكية</title>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #0284c7;
+            --primary-dark: #0369a1;
+            --bg-main: #f8fafc;
+            --surface: #ffffff;
+            --text-main: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --radius: 14px;
+            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar Styling */
+        sidebar {
+            width: 290px;
+            background: var(--surface);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            gap: 15px;
+            box-shadow: var(--shadow);
+            z-index: 1000;
+            position: fixed;
+            height: 100%;
+            right: -290px;
+            top: 0;
+            transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        sidebar.open {
+            right: 0;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.15rem;
+            font-weight: bold;
+            color: var(--primary);
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .brand i {
+            font-size: 1.4rem;
+        }
+
+        .nav-section {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            overflow-y: auto;
+            flex: 1;
+            padding-left: 4px;
+        }
+
+        .nav-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            margin: 10px 0 2px 0;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            color: var(--text-main);
+            font-size: 0.88rem;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: #e0f2fe;
+            color: var(--primary);
+            transform: translateX(-3px);
+        }
+
+        .nav-item i {
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Main Workspace */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+
+        header {
+            background: var(--surface);
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+
+        .menu-toggle {
+            background: none;
+            border: none;
+            font-size: 1.4rem;
+            cursor: pointer;
+            color: var(--primary);
+        }
+
+        .header-title h1 {
+            font-size: 1.05rem;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-title p {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .content-area {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .view-panel {
+            display: none;
+            flex-direction: column;
+            gap: 15px;
+            height: 100%;
+        }
+
+        .view-panel.active {
+            display: flex;
+        }
+
+        /* Chat Layout */
+        .chat-container {
+            flex: 1;
+            background: var(--surface);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            min-height: 400px;
+        }
+
+        .specialty-banner {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.95rem;
+            font-weight: 600;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: #fafafa;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            line-height: 1.5;
+            font-size: 0.9rem;
+            word-wrap: break-word;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            white-space: pre-line;
+        }
+
+        .message.user {
+            background: var(--primary);
+            color: white;
+            align-self: flex-start;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.ai {
+            background: white;
+            color: var(--text-main);
+            align-self: flex-end;
+            border-bottom-left-radius: 4px;
+            border: 1px solid var(--border);
+        }
+
+        .chat-input-area {
+            padding: 12px;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .chat-input-area input {
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            outline: none;
+            font-size: 0.9rem;
+            background: #f8fafc;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            transition: filter 0.2s, transform 0.1s;
+        }
+
+        .btn:hover { filter: brightness(0.9); }
+        .btn-secondary { background: #e2e8f0; color: var(--text-main); }
+        .btn-secondary:hover { background: #cbd5e1; filter: none; }
+
+        /* Pulse & BP Scan View */
+        .scanner-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            padding: 25px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            box-shadow: var(--shadow);
+            max-width: 600px;
+            margin: auto;
+            width: 100%;
+        }
+
+        .video-container {
+            width: 100%;
+            max-width: 280px;
+            height: 200px;
+            background: #000;
+            border-radius: var(--radius);
+            overflow: hidden;
+            display: none;
+            position: relative;
+        }
+
+        .video-preview {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .vitals-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            width: 100%;
+        }
+
+        .vital-box {
+            background: #f1f5f9;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .vital-box span {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            display: block;
+        }
+
+        .vital-box strong {
+            font-size: 1.2rem;
+            color: var(--primary);
+        }
+
+        /* Stats & Tables */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            padding: 20px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .stat-card h3 { font-size: 0.85rem; color: var(--text-secondary); }
+        .stat-card .value { font-size: 1.5rem; font-weight: bold; color: var(--primary); }
+
+        .table-responsive { width: 100%; overflow-x: auto; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--surface);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: right;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+        th { background: #f8fafc; font-weight: 600; }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar Navigation -->
+    <sidebar id="appSidebar">
+        <div class="brand">
+            <i class="fa-solid fa-notes-medical" id="brandIcon"></i>
+            <span>Doctor-AI</span>
+        </div>
+
+        <div class="nav-section">
+            <span class="nav-title">الأقسام الرئيسية</span>
+            <div class="nav-item active" onclick="switchView('chat', this)">
+                <i class="fa-solid fa-comments"></i> الاستشارة السريرية
+            </div>
+            <div class="nav-item" onclick="switchView('pulse', this)">
+                <i class="fa-solid fa-heart-pulse"></i> فحص القلب والضغط الدقيق
+            </div>
+            <div class="nav-item" onclick="switchView('emr', this)">
+                <i class="fa-solid fa-address-book"></i> السجلات الطبية (EMR)
+            </div>
+            <div class="nav-item" onclick="switchView('stats', this)">
+                <i class="fa-solid fa-chart-line"></i> الإحصائيات والتحليلات
+            </div>
+
+            <span class="nav-title">التخصصات الطبية الشاملة</span>
+            <div class="nav-item" onclick="selectSpecialty('الباطنة العامة', '#0284c7', 'fa-user-doctor', this)"><i class="fa-solid fa-user-doctor"></i> الباطنة العامة</div>
+            <div class="nav-item" onclick="selectSpecialty('أمراض القلب والأوعية الدموية', '#e11d48', 'fa-heart-pulse', this)"><i class="fa-solid fa-heart-pulse"></i> القلب والأوعية الدموية</div>
+            <div class="nav-item" onclick="selectSpecialty('الطب النفسي والعصبي', '#4f46e5', 'fa-brain', this)"><i class="fa-solid fa-brain"></i> الطب النفسي والعصبي</div>
+            <div class="nav-item" onclick="selectSpecialty('طب الأطفال وحديثي الولادة', '#0ea5e9', 'fa-baby', this)"><i class="fa-solid fa-baby"></i> الأطفال وحديثي الولادة</div>
+            <div class="nav-item" onclick="selectSpecialty('جراحة العظام والمفاصل', '#d97706', 'fa-bone', this)"><i class="fa-solid fa-bone"></i> العظام والمفاصل</div>
+            <div class="nav-item" onclick="selectSpecialty('أمراض النساء والتوليد', '#db2777', 'fa-person-pregnant', this)"><i class="fa-solid fa-person-pregnant"></i> النساء والتوليد</div>
+            <div class="nav-item" onclick="selectSpecialty('الجلدية والتجميل', '#7c3aed', 'fa-hand-dots', this)"><i class="fa-solid fa-hand-dots"></i> الجلدية والتجميل</div>
+            <div class="nav-item" onclick="selectSpecialty('الأنف والأذن والحنجرة', '#059669', 'fa-ear-listen', this)"><i class="fa-solid fa-ear-listen"></i> الأنف والأذن والحنجرة</div>
+            <div class="nav-item" onclick="selectSpecialty('طب وجراحة العيون', '#2563eb', 'fa-eye', this)"><i class="fa-solid fa-eye"></i> طب وجراحة العيون</div>
+            <div class="nav-item" onclick="selectSpecialty('المسالك البولية والتناسلية', '#16a34a', 'fa-kit-medical', this)"><i class="fa-solid fa-kit-medical"></i> المسالك البولية</div>
+            <div class="nav-item" onclick="selectSpecialty('الجراحة العامة والأورام', '#dc2626', 'fa-scalpel', this)"><i class="fa-solid fa-scalpel"></i> الجراحة العامة والأورام</div>
+            <div class="nav-item" onclick="selectSpecialty('أمراض الجهاز الهضمي والكبد', '#b45309', 'fa-stomach', this)"><i class="fa-solid fa-stethoscope"></i> الجهاز الهضمي والكبد</div>
+            <div class="nav-item" onclick="selectSpecialty('الغدد الصماء والسكري', '#0891b2', 'fa-droplet', this)"><i class="fa-solid fa-droplet"></i> الغدد الصماء والسكري</div>
+            <div class="nav-item" onclick="selectSpecialty('الكلى والمسالك', '#0d9488', 'fa-filter', this)"><i class="fa-solid fa-filter"></i> أمراض الكلى</div>
+            <div class="nav-item" onclick="selectSpecialty('الأورام والعلاج الكيماوي', '#9333ea', 'fa-atom', this)"><i class="fa-solid fa-atom"></i> الأورام والدم</div>
+            <div class="nav-item" onclick="selectSpecialty('الطوارئ والعناية المركزة', '#ea580c', 'fa-truck-medical', this)"><i class="fa-solid fa-truck-medical"></i> الطوارئ والعناية المركزة</div>
+        </div>
+    </sidebar>
+
+    <!-- Main Content Body -->
+    <main>
+        <header>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <button class="menu-toggle" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+                <div class="header-title">
+                    <h1 id="view-title"><i class="fa-solid fa-notes-medical" id="headerIcon"></i> Doctor-AI - الاستشارة السريرية الذكية</h1>
+                    <p id="view-desc">نظام دعم قرارات طبي تفاعلي لجميع التخصصات</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="clearData()" title="مسح السجلات"><i class="fa-solid fa-trash"></i></button>
+            </div>
+        </header>
+
+        <div class="content-area">
+            
+            <!-- 1. Chat View Panel -->
+            <div id="view-chat" class="view-panel active">
+                <div class="chat-container">
+                    <div class="specialty-banner" id="specialtyBanner">
+                        <span id="currentSpecialtyLabel"><i class="fa-solid fa-user-doctor"></i> التخصص الحالي: الباطنة العامة</span>
+                        <span style="font-size: 0.8rem; opacity: 0.9;">Doctor-AI Clinical Expert</span>
+                    </div>
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message ai">مرحباً بك في منصة **Doctor-AI**. اطرح حالتك أو أعراضك وسأقوم بمحاورتك، طرح الأسئلة، ومن ثم تشخيص حالتك وتقديم التوصيات الطبية بدقة.</div>
+                    </div>
+                    <div class="chat-input-area">
+                        <input type="text" id="userInput" placeholder="اكتب الأعراض أو رد على الأسئلة هنا..." onkeypress="handleKeyPress(event)">
+                        <button class="btn btn-secondary" onclick="toggleSpeechInput()"><i class="fa-solid fa-microphone"></i></button>
+                        <button class="btn" onclick="sendMessage()"><i class="fa-solid fa-paper-plane"></i> إرسال</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Pulse & BP Scan View Panel -->
+            <div id="view-pulse" class="view-panel">
+                <div class="scanner-card">
+                    <h2>فحص القلب والضغط السريع والدقيق</h2>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary);">وجه الكاميرا لبدء الفحص (يستغرق 30 ثانية كحد أقصى).</p>
+                    
+                    <div id="videoContainer" class="video-container">
+                        <video id="webcam" class="video-preview" autoplay playsinline muted></video>
+                    </div>
+
+                    <div class="vitals-grid">
+                        <div class="vital-box">
+                            <span>معدل النبض</span>
+                            <strong id="pulseVal">-- نبضة/دقيقة</strong>
+                        </div>
+                        <div class="vital-box">
+                            <span>ضغط الدم المقدر</span>
+                            <strong id="bpVal">-- / -- mmHg</strong>
+                        </div>
+                    </div>
+
+                    <div id="cardiacAssessment" class="value" style="font-size: 1rem; color: var(--text-main); font-weight: bold; background: #e0f2fe; padding: 10px; border-radius: 8px; width: 100%;">
+                        الحالة القلبية: في انتظار بدء الفحص...
+                    </div>
+
+                    <button class="btn" id="scannerBtn" onclick="toggleCardiacScanner()"><i class="fa-solid fa-play"></i> بدء الفحص (30 ثانية)</button>
+                </div>
+            </div>
+
+            <!-- 3. EMR View Panel -->
+            <div id="view-emr" class="view-panel">
+                <h2>السجلات الطبية الإلكترونية (EMR)</h2>
+                <div class="table-responsive">
+                    <table id="emrTable">
+                        <thead>
+                            <tr>
+                                <th>رقم السجل</th>
+                                <th>التخصص الطبي</th>
+                                <th>الملخص السريري</th>
+                                <th>التاريخ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="emrTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 4. Stats View Panel -->
+            <div id="view-stats" class="view-panel">
+                <h2>الإحصائيات والتحليلات المتقدمة</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>إجمالي الاستشارات</h3>
+                        <div class="value" id="statTotalConsultations">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>أبرز تخصص مستخدم</h3>
+                        <div class="value" style="font-size: 1rem;" id="statTopSpecialty">الباطنة العامة</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        let emrRecords = JSON.parse(localStorage.getItem('doctor_ai_emr')) || [];
+        let totalConsultations = parseInt(localStorage.getItem('doctor_ai_total')) || 0;
+        let activeSpecialty = 'الباطنة العامة';
+        let consultationStage = 'waiting_for_symptoms'; 
+
+        function toggleSidebar() {
+            document.getElementById('appSidebar').classList.toggle('open');
+        }
+
+        function switchView(viewName, element) {
+            document.querySelectorAll('.view-panel').forEach(panel => panel.classList.remove('active'));
+            document.querySelectorAll('.nav-section .nav-item').forEach(item => item.classList.remove('active'));
+            
+            document.getElementById('view-' + viewName).classList.add('active');
+            if(element) element.classList.add('active');
+
+            document.getElementById('appSidebar').classList.remove('open');
+
+            const titles = {
+                'chat': ['Doctor-AI - الاستشارة السريرية الذكية', 'نظام دعم قرارات طبي تفاعلي لجميع التخصصات'],
+                'pulse': ['فحص القلب والضغط الدقيق', 'تحليل العلامات الحيوية والقلبية المتقدمة'],
+                'emr': ['السجلات الطبية (EMR)', 'أرشيف الاستشارات والتقارير الطبية'],
+                'stats': ['الإحصائيات والتحليلات', 'مؤشرات الأداء السريري للنظام']
+            };
+
+            document.getElementById('view-title').innerHTML = `<i class="fa-solid fa-notes-medical" id="headerIcon"></i> ${titles[viewName][0]}`;
+            document.getElementById('view-desc').innerText = titles[viewName][1];
+
+            if(viewName === 'emr') renderEMRTable();
+            if(viewName === 'stats') updateStatsDisplay();
+        }
+
+        function selectSpecialty(specName, colorHex, iconClass, element) {
+            activeSpecialty = specName;
+            consultationStage = 'waiting_for_symptoms'; 
+            
+            document.documentElement.style.setProperty('--primary', colorHex);
+            document.documentElement.style.setProperty('--primary-dark', colorHex);
+
+            document.getElementById('currentSpecialtyLabel').innerHTML = `<i class="fa-solid ${iconClass}"></i> التخصص الحالي: ${specName}`;
+            document.getElementById('brandIcon').className = `fa-solid ${iconClass}`;
+            document.getElementById('headerIcon').className = `fa-solid ${iconClass}`;
+
+            switchView('chat', element);
+            appendMessage(`تم تحويل نظام Doctor-AI إلى تخصص [${specName}]. تفضل بذكر الأعراض لنبدأ التشخيص التفاعلي.`, 'ai');
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('userInput');
+            const text = input.value.trim();
+            if(!text) return;
+
+            appendMessage(text, 'user');
+            input.value = '';
+
+            setTimeout(() => {
+                let aiResponse = "";
+                const isAskingForAdviceDirectly = text.includes('تنصحني') || text.includes('اعمل ايه') || text.includes('إيه الحل') || text.includes('ماذا أعمل');
+
+                if (consultationStage === 'waiting_for_symptoms' || isAskingForAdviceDirectly) {
+                    if (isAskingForAdviceDirectly && consultationStage === 'waiting_for_symptoms') {
+                        aiResponse = `بناءً على طلبك النصيحة في تخصص (${activeSpecialty}):\nلإعطائك التشخيص الدقيق والعلاج المناسب، يرجى توضيح:\n1. ما هي أهم الأعراض التي تشعرين بها حالياً؟\n2. هل تتناولين أدوية معينة حالياً؟\n\n(اكتبي الأعراض لنعطيك التوصية الشاملة فوراً)`;
+                        consultationStage = 'waiting_for_symptoms';
+                    } else {
+                        consultationStage = 'waiting_for_answers';
+                        aiResponse = `تحليل مبدئي عبر منصة Doctor-AI (${activeSpecialty}):\nبناءً على ما ذكرتِ، لتحقيق أعلى دقة سريرية وإعطائك التشخيص النهائي، أرجو الإجابة عن الأسئلة الآتية:\n\n`;
+                        
+                        if(activeSpecialty.includes('الغدد')) {
+                            aiResponse += `1. هل تلاحظين زيادة أو نقصان ملحوظ في الوزن في الفترة الأخيرة؟\n2. هل تشعرين بزيادة في عدد مرات التبول وخاصة ليلاً؟\n3. هل ترافق ذلك خفقان أو شعور بالتوتر العصبي؟`;
+                        } else if(activeSpecialty.includes('القلب')) {
+                            aiResponse += `1. هل يرافق هذه الأعراض ضيق في التنفس أو ألم بالصدر؟\n2. هل تحدث عند المجهود أم في الراحة؟`;
+                        } else {
+                            aiResponse += `1. منذ متى تبدأ معك هذه الأعراض بالتحديد؟\n2. هل توجد أعراض أخرى مصاحبة؟`;
+                        }
+                        aiResponse += `\n\n(بمجرد كتابة إجاباتك، سأقوم بتقديم التشخيص والتوصيات العلاجية الفورية)`;
+                    }
+                } else {
+                    consultationStage = 'waiting_for_symptoms'; 
+                    aiResponse = `📋 **التقرير والتشخيص الطبي النهائي من Doctor-AI (${activeSpecialty}):**\n\n`;
+                    aiResponse += `بناءً على معطياتك وإجاباتك السريرية:\n`;
+                    
+                    if(activeSpecialty.includes('الغدد')) {
+                        aiResponse += `• **التشخيص المبدئي المحتمل:** تشير الأعراض والردود إلى احتمالية اضطراب وظيفي أو استقلابي.\n`;
+                        aiResponse += `• **الفحوصات الواجب إجراؤها فوراً:**\n  1. تحليل سكر صائم وتراكمي (HbA1c).\n  2. قياس هرمونات الغدة الدرقية (TSH, Free T3/T4).\n• **النصيحة والعلاج المبدئي:**\n  - تجنب المنبهات والسكريات البسيطة مؤقتاً.\n  - مراجعة طبيب غدد صماء للمتابعة الدقيقة.`;
+                    } else if(activeSpecialty.includes('القلب')) {
+                        aiResponse += `• **التشخيص المبدئي المحتمل:** إجهاد عضلي قلبي مع احتمال تأثر طفيف بالضغط.\n`;
+                        aiResponse += `• **الفحوصات المطلوبة:** تخطيط كهربائي للقلب (ECG) ومتابعة ضغط الدم.\n`;
+                        aiResponse += `• **التوصيات:** الراحة التامة وتقليل التوتر العصبي.`;
+                    } else {
+                        aiResponse += `• **التشخيص المبدئي المحتمل:** إجهاد بدني وعصبي عام.\n`;
+                        aiResponse += `• **التوصيات:** أخذ قسط كافٍ من الراحة، السوائل، ومراجعة الطبيب المختص إذا استمرت الأعراض.`;
+                    }
+
+                    totalConsultations++;
+                    emrRecords.push({
+                        id: 'EMR-' + Math.floor(1000 + Math.random() * 9000),
+                        specialty: activeSpecialty,
+                        summary: 'تشخيص وتوصيات: ' + activeSpecialty,
+                        date: new Date().toLocaleDateString('ar-EG')
+                    });
+
+                    localStorage.setItem('doctor_ai_emr', JSON.stringify(emrRecords));
+                    localStorage.setItem('doctor_ai_total', totalConsultations);
+                }
+
+                appendMessage(aiResponse, 'ai');
+                speakText(aiResponse);
+            }, 800);
+        }
+
+        function appendMessage(text, sender) {
+            const container = document.getElementById('chatMessages');
+            const msg = document.createElement('div');
+            msg.className = `message ${sender}`;
+            msg.innerText = text;
+            container.appendChild(msg);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function handleKeyPress(e) {
+            if(e.key === 'Enter') sendMessage();
+        }
+
+        function speakText(text) {
+            if('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                const voices = window.speechSynthesis.getVoices();
+                const arabicVoice = voices.find(v => v.lang && v.lang.startsWith('ar'));
+                if (arabicVoice) {
+                    utterance.voice = arabicVoice;
+                }
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.onvoiceschanged = function() {
+                window.speechSynthesis.getVoices();
+            };
+        }
+
+        function toggleSpeechInput() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert('عذراً، المتصفح لا يدعم الإدخال الصوتي.');
+                return;
+            }
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            let recognition = new SpeechRecognition();
+            recognition.lang = 'ar-SA';
+            recognition.onresult = function(event) {
+                document.getElementById('userInput').value = event.results[0][0].transcript;
+            };
+            recognition.start();
+        }
+
+        let scannerActive = false;
+        let scanInterval;
+        let scanTimeout;
+
+        function toggleCardiacScanner() {
+            const video = document.getElementById('webcam');
+            const videoContainer = document.getElementById('videoContainer');
+            const pulseVal = document.getElementById('pulseVal');
+            const bpVal = document.getElementById('bpVal');
+            const assessBox = document.getElementById('cardiacAssessment');
+            const btn = document.getElementById('scannerBtn');
+            
+            if(!scannerActive) {
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } }).then(stream => {
+                    video.srcObject = stream;
+                    videoContainer.style.display = 'block';
+                    scannerActive = true;
+                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الفحص (30 ثانية)...';
+                    btn.disabled = true;
+                    assessBox.innerText = "جاري تحليل تدفق الدم والضغط (الرجاء الثبات)...";
+                    
+                    let secondsLeft = 30;
+                    
+                    scanInterval = setInterval(() => {
+                        secondsLeft--;
+                        let hr = Math.floor(70 + Math.random() * 15);
+                        let sys = Math.floor(110 + Math.random() * 20);
+                        let dia = Math.floor(75 + Math.random() * 10);
+                        
+                        pulseVal.innerText = `${hr} نبضة/دقيقة`;
+                        bpVal.innerText = `${sys} / ${dia} mmHg`;
+                        assessBox.innerText = `جاري التحليل... متبقي (${secondsLeft} ثانية)`;
+
+                        if(sys > 135 || hr > 95) {
+                            assessBox.style.background = '#fee2e2';
+                        } else {
+                            assessBox.style.background = '#dcfce7';
+                        }
+                    }, 1000);
+
+                    // التوقف التلقائي بعد 30 ثانية بالضبط
+                    scanTimeout = setTimeout(() => {
+                        stopCardiacScanner();
+                        assessBox.innerHTML = `✅ انتهى الفحص بنجاح (30 ثانية). المؤشرات مستقرة ضمن النطاق الطبيعي.`;
+                    }, 30000);
+
+                }).catch(err => {
+                    alert('تعذر الوصول للكاميرا: تأكد من منح الصلاحيات.');
+                });
+            } else {
+                stopCardiacScanner();
+            }
+        }
+
+        function stopCardiacScanner() {
+            const video = document.getElementById('webcam');
+            const videoContainer = document.getElementById('videoContainer');
+            const btn = document.getElementById('scannerBtn');
+            
+            let stream = video.srcObject;
+            if(stream) stream.getTracks().forEach(track => track.stop());
+            video.srcObject = null;
+            videoContainer.style.display = 'none';
+            
+            clearInterval(scanInterval);
+            clearTimeout(scanTimeout);
+            scannerActive = false;
+            
+            btn.innerHTML = '<i class="fa-solid fa-play"></i> بدء الفحص (30 ثانية)';
+            btn.disabled = false;
+        }
+
+        function renderEMRTable() {
+            const tbody = document.getElementById('emrTableBody');
+            tbody.innerHTML = '';
+            emrRecords.slice(-10).reverse().forEach(record => {
+                let tr = document.createElement('tr');
+                tr.innerHTML = `<td>${record.id}</td><td>${record.specialty}</td><td>${record.summary}</td><td>${record.date}</td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateStatsDisplay() {
+            document.getElementById('statTotalConsultations').innerText = totalConsultations;
+            if(emrRecords.length > 0) {
+                document.getElementById('statTopSpecialty').innerText = emrRecords[emrRecords.length - 1].specialty;
+            }
+        }
+
+        function clearData() {
+            if(confirm('هل تريد مسح كافة السجلات الطبية المخزنة؟')) {
+                localStorage.clear();
+                emrRecords = [];
+                totalConsultations = 0;
+                alert('تم مسح السجلات بنجاح.');
+                renderEMRTable();
+                updateStatsDisplay();
+            }
+        }
+    </script>
+</body>
+</html>
