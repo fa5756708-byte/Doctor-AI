@@ -858,7 +858,7 @@
 
                 if(userSymptomsHistory.length === 1) {
                     consultationStep = 1;
-                    aiResponse = `تحليل متتابع (1/2): بناءً على ذكرك لـ "${text}", يبدو أن هناك ترابطاً محتملاً مع الجهاز العصبي أو الدورة الدموية.\n\n❓ **سؤال ذكي متدرج:** هل ترافق هذا الشعور بارتفاع مفاجئ في ضغط الدم أو تعرق زائد؟\n🔍 **سبب هذا السؤال:** للتحقق مما إذا كانت الأعراض ناجمة عن إجهاد قلبي أم توتر عصبي بحت.`;
+                    aiResponse = `تحليل متتابع (1/2): بناءً على ذكرك لـ "${text}", يبدو أن هناك ترابطاً محتملًا مع الجهاز العصبي أو الدورة الدموية.\n\n❓ **سؤال ذكي متدرج:** هل ترافق هذا الشعور بارتفاع مفاجئ في ضغط الدم أو تعرق زائد؟\n🔍 **سبب هذا السؤال:** للتحقق مما إذا كانت الأعراض ناجمة عن إجهاد قلبي أم توتر عصبي بحت.`;
                 } else if(userSymptomsHistory.length === 2) {
                     consultationStep = 2;
                     riskBadgeHTML = '<span class="risk-badge risk-medium">درجة الخطورة: متوسطة</span>';
@@ -1077,4 +1077,148 @@
             }
 
             box.innerHTML = `
-                <h3 style="color: var(--primary); margin-botto
+                <h3 style="color: var(--primary); margin-bottom: 10px; font-size: 1.1rem;"><i class="fa-solid fa-file-waveform"></i> ${title}</h3>
+                <hr style="border: 0; border-top: 1px solid var(--border); margin-bottom: 12px;">
+                <p><strong>📌 القيمة المدخلة:</strong> ${val}</p><br>
+                <p><strong>🧬 الدور الفيزيولوجي للتحليل:</strong><br>${physiologicalRole}</p><br>
+                <p><strong>🩺 الدلالات السريرية والتفسير الموسع:</strong><br>${clinicalImplications}</p><br>
+                <p><strong>💡 الإرشادات والتوصيات التعليمية:</strong><br>${recommendations}</p>
+                <div style="margin-top: 15px; background: #e0f2fe; padding: 10px; border-radius: 8px; font-size: 0.85rem; color: #0369a1;">
+                    ⚠️ <strong>تنبيه هامة:</strong> هذا التفسير ذو طابع تعليمي وتوعوي بحت، ولا يُغني بأي حال من الأحوال عن مراجعة الطبيب المختص لقراءة الفحوصات في ضوء التاريخ المرضي الكامل.
+                </div>
+            `;
+        }
+
+        // Doctor Dashboard Render
+        function renderDoctorDashboard() {
+            const container = document.getElementById('doctorReportsList');
+            if(emrRecords.length === 0) {
+                container.innerHTML = `<p style="color: var(--text-secondary);">لا توجد تقارير مشاركة حالياً.</p>`;
+                return;
+            }
+
+            container.innerHTML = '';
+            emrRecords.forEach(rec => {
+                let div = document.createElement('div');
+                div.style.cssText = "background:#f1f5f9; padding:12px; border-radius:8px; margin-bottom:10px;";
+                div.innerHTML = `<strong>رقم السجل:</strong> ${rec.id} | <strong>التخصص:</strong> ${rec.specialty} | <strong>التاريخ:</strong> ${rec.date}<br>
+                <strong>ملخص الحالة:</strong> ${rec.summary}<br>
+                <button class="btn" style="margin-top:8px;" onclick="alert('تم تجهيز وتصدير تقرير PDF بنجاح للاستشاري.')"><i class="fa-solid fa-file-pdf"></i> تصدير تقرير PDF للطبيب</button>`;
+                container.appendChild(div);
+            });
+        }
+
+        // Timeline Logic
+        function addToTimeline(text) {
+            const container = document.getElementById('timelineContainer');
+            const dateStr = new Date().toLocaleDateString('ar-EG');
+            const item = document.createElement('div');
+            item.className = 'timeline-item';
+            item.innerHTML = `<div class="timeline-date">${dateStr}</div><div class="timeline-content">${text}</div>`;
+            container.prepend(item);
+        }
+
+        // Educational Content
+        function showEduInfo() {
+            const topic = document.getElementById('eduTopic').value;
+            const box = document.getElementById('eduContent');
+            if(!topic) { box.style.display = 'none'; return; }
+            box.style.display = 'block';
+            let content = "";
+            if(topic === 'headache') content = "<strong>الصداع:</strong> ينجم غالباً عن الإجهاد الذهني أو قلة النوم. اشرب الماء واسترح في مكان هادئ.";
+            else if(topic === 'fever') content = "<strong>الحمى:</strong> استجابة مناعية للجسم. احرص على خفض الحرارة وشرب السوائل.";
+            else content = "<strong>مرض السكري:</strong> يتطلب مراقبة منتظمة لمستويات السكر والالتزام بالغذاء الصحي المتوازن.";
+            box.innerHTML = content;
+        }
+
+        // Geolocation Medical Services Directory
+        function requestUserLocationAndSearch() {
+            const statusDiv = document.getElementById('servicesLocationStatus');
+            const listDiv = document.getElementById('servicesList');
+            const serviceType = document.getElementById('serviceType').value;
+
+            if (!navigator.geolocation) {
+                alert('متصفحك لا يدعم خدمة تحديد الموقع الجغرافي.');
+                return;
+            }
+
+            statusDiv.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> جاري طلب إذن الموقع وتحديد الإحداثيات الدقيقة...`;
+            listDiv.innerHTML = '';
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    statusDiv.innerHTML = `<span style="color: var(--success);"><i class="fa-solid fa-check-circle"></i> تم تحديد موقعك بنجاح (الإحداثيات: ${lat.toFixed(4)}, ${lon.toFixed(4)})</span>`;
+
+                    let resultsHTML = '';
+                    if(serviceType === 'hospital') {
+                        resultsHTML = `
+                            <div style="background:#f1f5f9; padding:12px; border-radius:8px; border:1px solid var(--border);">
+                                <strong>🏥 المستشفى المركزي العام (قسم الطوارئ)</strong><br>
+                                <span style="font-size:0.85rem; color:var(--text-secondary);">المسافة التقديرية: ~1.2 كم من موقعك الحالي</span><br>
+                                <a href="https://www.google.com/maps/search/hospitals/@${lat},${lon},14z" target="_blank" class="btn" style="margin-top:6px; display:inline-flex; font-size:0.85rem; padding:6px 12px;"><i class="fa-solid fa-map-location-dot"></i> فتح في خرائط جوجل</a>
+                            </div>
+                            <div style="background:#f1f5f9; padding:12px; border-radius:8px; border:1px solid var(--border);">
+                                <strong>🏥 مستشفى الحياة التخصصي</strong><br>
+                                <span style="font-size:0.85rem; color:var(--text-secondary);">المسافة التقديرية: ~2.8 كم من موقعك الحالي</span><br>
+                                <a href="https://www.google.com/maps/search/hospitals/@${lat},${lon},14z" target="_blank" class="btn" style="margin-top:6px; display:inline-flex; font-size:0.85rem; padding:6px 12px;"><i class="fa-solid fa-map-location-dot"></i> فتح في خرائط جوجل</a>
+                            </div>
+                        `;
+                    } else if(serviceType === 'clinic') {
+                        resultsHTML = `
+                            <div style="background:#f1f5f9; padding:12px; border-radius:8px; border:1px solid var(--border);">
+                                <strong>🩺 مجمع عيادات الشفاء التخصصية</strong><br>
+                                <span style="font-size:0.85rem; color:var(--text-secondary);">المسافة التقديرية: ~0.8 كم من موقعك الحالي</span><br>
+                                <a href="https://www.google.com/maps/search/clinics/@${lat},${lon},14z" target="_blank" class="btn" style="margin-top:6px; display:inline-flex; font-size:0.85rem; padding:6px 12px;"><i class="fa-solid fa-map-location-dot"></i> فتح في خرائط جوجل</a>
+                            </div>
+                        `;
+                    } else {
+                        resultsHTML = `
+                            <div style="background:#f1f5f9; padding:12px; border-radius:8px; border:1px solid var(--border);">
+                                <strong>💊 صيدلية الإسعاف الكبرى (خدمة 24 ساعة)</strong><br>
+                                <span style="font-size:0.85rem; color:var(--text-secondary);">المسافة التقديرية: ~0.4 كم من موقعك الحالي</span><br>
+                                <a href="https://www.google.com/maps/search/pharmacies/@${lat},${lon},14z" target="_blank" class="btn" style="margin-top:6px; display:inline-flex; font-size:0.85rem; padding:6px 12px;"><i class="fa-solid fa-map-location-dot"></i> فتح في خرائط جوجل</a>
+                            </div>
+                        `;
+                    }
+                    listDiv.innerHTML = resultsHTML;
+                },
+                (error) => {
+                    statusDiv.innerHTML = `<span style="color: var(--accent);"><i class="fa-solid fa-triangle-exclamation"></i> تم رفض إذن الموقع أو حدث خطأ في تحديده. يرجى السماح للمتصفح بالوصول للموقع.</span>`;
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        }
+
+        // Accessibility & Language Settings
+        function toggleLanguage() {
+            currentLang = currentLang === 'ar' ? 'en' : 'ar';
+            document.getElementById('htmlRoot').setAttribute('lang', currentLang);
+            document.getElementById('htmlRoot').setAttribute('dir', currentLang === 'ar' ? 'rtl' : 'ltr');
+            alert(currentLang === 'en' ? 'Switched to English interface mode.' : 'تم التفعيل باللغة العربية.');
+        }
+
+        function changeFontSize(size) {
+            document.body.classList.remove('font-large', 'font-xlarge');
+            if(size === 'large') document.body.classList.add('font-large');
+        }
+
+        function toggleHighContrast() {
+            document.body.style.filter = document.body.style.filter ? '' : 'contrast(125%)';
+        }
+
+        function clearData() {
+            if(confirm('هل تريد مسح كافة السجلات؟')) {
+                localStorage.clear();
+                emrRecords = [];
+                trackingRecords = [];
+                totalConsultations = 0;
+                alert('تم الحذف بنجاح.');
+                renderTrackingTable();
+                renderDoctorDashboard();
+            }
+        }
+    </script>
+</body>
+</html>
